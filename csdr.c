@@ -83,6 +83,7 @@ char usage[]=
 "    logpower_cf [add_db]\n"
 "    fft_benchmark <fft_size> <fft_cycles> [--benchmark]\n"
 "    bandpass_fir_fft_cc <low_cut> <high_cut> <transition_bw> [window]\n"
+"    hfsquelch <cutoff>\n"
 ;
 
 #define BUFSIZE (1024*8)
@@ -302,6 +303,32 @@ int main(int argc, char *argv[])
 		}
 		return 0;
 	}
+	if(!strcmp(argv[1],"hfsquelch"))
+	{
+		float cutoff;
+		int fd;
+		if(fd=init_fifo(argc,argv))
+		{
+			//while(!read_fifo_ctl(fd,"%g\n",&cutoff)) usleep(10000);
+			cutoff = 0;
+		}
+		else
+		{
+			if(argc<=2) return badsyntax("need required parameter (cutoff)"); 
+			sscanf(argv[2],"%g",&cutoff);
+		}
+
+		for(;;)
+		{
+			FEOF_CHECK;
+			if(!FREAD_C) break;
+			float pow = hfsquelch((complexf*)input_buffer, (complexf*)output_buffer, BUFSIZE, cutoff);
+			fprintf(stderr, "%g - %g\n", cutoff, pow);
+			FWRITE_C;
+			if(read_fifo_ctl(fd,"%g\n",&cutoff)) /* ok */;
+		}
+		return 0;
+	}
 	//speed tests: 
 	//csdr yes_f 1 1000000 | time csdr shift_math_cc 0.2 >/dev/null
 	//csdr yes_f 1 1000000 | time csdr shift_addition_cc 0.2 >/dev/null
@@ -490,13 +517,19 @@ int main(int argc, char *argv[])
 		float *taps=(float*)malloc(taps_length*sizeof(float));
 		firdes_lowpass_f(taps,taps_length,0.5/(float)factor,window);
 
+		float *taps2=(float *)malloc(taps_length*sizeof(float)*2);
+		for(int i=0; i<taps_length; i++) {
+			taps2[2*i]=taps[i];
+			taps2[2*i+1]=taps[i];
+		}
+
 		int input_skip=0;
 		int output_size=0;
 		FREAD_C;
 		for(;;)
 		{
 			FEOF_CHECK;
-			output_size=fir_decimate_cc((complexf*)input_buffer, (complexf*)output_buffer, BUFSIZE, factor, taps, taps_length);
+			output_size=fir_decimate_cc2((complexf*)input_buffer, (complexf*)output_buffer, BUFSIZE, factor, taps2, taps_length);
 			fwrite(output_buffer, sizeof(complexf), output_size, stdout);
 			fflush(stdout);
 			input_skip=factor*output_size;

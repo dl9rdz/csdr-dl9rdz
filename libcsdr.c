@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "libcsdr.h"
 #include "predefined.h"
 #include <assert.h>
-
+#include "arm_neon.h"
 /*
            _           _                   __                  _   _                 
           (_)         | |                 / _|                | | (_)                
@@ -221,6 +221,34 @@ int fir_decimate_cc(complexf *input, complexf *output, int input_size, int decim
 		for(int ti=0; ti<taps_length; ti++) acci += (iof(input,i+ti)) * taps[ti]; //@fir_decimate_cc: i loop
 		float accq=0;
 		for(int ti=0; ti<taps_length; ti++) accq += (qof(input,i+ti)) * taps[ti]; //@fir_decimate_cc: q loop
+		iof(output,oi)=acci;
+		qof(output,oi)=accq;
+		oi++;
+	}
+	return oi;
+}
+
+int fir_decimate_cc2(complexf *input, complexf *output, int input_size, int decimation, float *taps, int taps_length)
+{
+	//Theory: http://www.dspguru.com/dsp/faqs/multirate/decimation
+	//It uses real taps. It returns the number of output samples actually written.
+	//It needs overlapping input based on its returned value:
+	//number of processed input samples = returned value * decimation factor
+	//The output buffer should be at least input_length / 3.
+	// i: input index | ti: tap index | oi: output index
+	int oi=0;
+	for(int i=0; i<input_size; i+=decimation) //@fir_decimate_cc: outer loop
+	{
+		if(i+taps_length>input_size) break;
+		float32x4_t si, ci, o;
+		o = vdupq_n_f32(0);
+		for(int ti=0; ti<2*taps_length; ti+=4) {   //@fir_decimate_cc2: i+q loop
+			si = vld1q_f32((float *)input+2*i+ti);
+			ci = vld1q_f32(taps+ti);
+			o = vmlaq_f32(o, si, ci);
+		}
+		float acci=vgetq_lane_f32(o,0)+vgetq_lane_f32(o,2);
+		float accq=vgetq_lane_f32(o,1)+vgetq_lane_f32(o,3);
 		iof(output,oi)=acci;
 		qof(output,oi)=accq;
 		oi++;
@@ -732,7 +760,25 @@ void logpower_cf(complexf* input, float* output, int size, float add_db)
 
 void convert_u8_f(unsigned char* input, float* output, int input_size)
 {
-	for(int i=0;i<input_size;i++) output[i]=((float)input[i])/(UCHAR_MAX/2.0)-1.0; //@convert_u8_f
+	//for(int i=0;i<input_size;i++) output[i]=((float)input[i])/(UCHAR_MAX/2.0)-1.0; //@convert_u8_f
+	float32x4_t minuseins = vdupq_n_f32(-1.0);
+	float32x4_t einsdurchmax = vdupq_n_f32(1.0/UCHAR_MAX*2.0);
+	for(int i=0; i<input_size; i+=8) {
+		uint8x8_t in8 = vld1_u8(input + i);
+		uint16x8_t in16 = vmovl_u8(in8);
+
+		uint16x4_t ilow = vget_low_u16(in16);
+		uint32x4_t il32 = vmovl_u16(ilow);
+		float32x4_t ifl = vcvtq_f32_u32(il32);
+		float32x4_t sum = vmlaq_f32(minuseins,ifl,einsdurchmax);
+		vst1q_f32(output+i, sum);
+
+		uint16x4_t ihigh = vget_high_u16(in16);
+		uint32x4_t ih32 = vmovl_u16(ihigh);
+		float32x4_t ifh = vcvtq_f32_u32(ih32);
+		float32x4_t sum2 = vmlaq_f32(minuseins, ifh, einsdurchmax);
+		vst1q_f32(output+4+i, sum2);
+	}
 }
 
 void convert_i16_f(short* input, float* output, int input_size)
@@ -767,5 +813,26 @@ int trivial_vectorize()
 	}
 	return c[0];
 }
+
+
+float hfsquelch(complexf *input, complexf *output, int len, float cutoff)
+{
+	//rms
+	float t=0, p=0;
+	for(int i=0; i<len; i++) t += iof(input,i) + qof(input,i);  //@hfsquelch_1
+	for(int i=0; i<len; i++) p += iof(input,i)*iof(input,i) + qof(input,i)*qof(input,i); //@hfsquelch_2
+	float dc = t/len;
+	float err = t*2*dc - dc*dc*len;
+	float pow = sqrt( (p-err)/len );
+
+	if(pow < cutoff) {
+		for(int i=0; i<len; i++) { iof(output,i) = 0; qof(output,i) = 0; }
+		for(int i=0; i<len; i++) { iof(output,i) = 0; qof(output,i) = 0; }
+	} else {
+		for(int i=0; i<len; i++) { iof(output,i) = iof(input,i); qof(output,i) = qof(input,i); }
+	}
+	return pow;
+}
+
 
 

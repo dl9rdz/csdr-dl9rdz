@@ -98,6 +98,7 @@ void limit_ff(float* input, float* output, int input_size, float max_amplitude);
 
 //filters, decimators, resamplers, shift, etc.
 int fir_decimate_cc(complexf *input, complexf *output, int input_size, int decimation, float *taps, int taps_length);
+int fir_decimate_cc2(complexf *input, complexf *output, int input_size, int decimation, float *taps, int taps_length);
 int deemphasis_nfm_ff (float* input, float* output, int input_size, int sample_rate);
 float deemphasis_wfm_ff (float* input, float* output, int input_size, float tau, int sample_rate, float last_output);
 float shift_math_cc(complexf *input, complexf* output, int input_size, float rate, float starting_phase);
@@ -157,5 +158,6 @@ void convert_f_i16(float* input, short* output, int input_size);
 void convert_i16_f(short* input, float* output, int input_size);
 
 
+float hfsquelch(complexf *input, complexf *output, int input_size, float cutoff);
 
 
