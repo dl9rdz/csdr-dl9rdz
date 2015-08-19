@@ -492,7 +492,8 @@ float fastdcblock_ff(float* input, float* output, int input_size, float last_dc_
 	return avg;
 }
 
-#define FASTAGC_MAX_GAIN (65e3)
+//#define FASTAGC_MAX_GAIN (65e3)
+#define FASTAGC_MAX_GAIN 10
 
 void fastagc_ff(fastagc_ff_t* input, float* output)
 {
