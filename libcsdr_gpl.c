@@ -24,6 +24,58 @@ This file is part of libcsdr.
 
 #ifdef LIBCSDR_GPL
 
+float shift_addition_cc2(complexf *input, complexf* output, int input_size, shift_addition_data_t d, float starting_phase)
+{
+	//The original idea was taken from wdsp:
+	//http://svn.tapr.org/repos_sdr_hpsdr/trunk/W5WC/PowerSDR_HPSDR_mRX_PS/Source/wdsp/shift.c
+
+	//However, this method introduces noise (from floating point rounding errors), which increases until the end of the buffer.
+	//fprintf(stderr, "cosd=%g sind=%g\n", d.cosdelta, d.sindelta);
+	float cosphi=cos(starting_phase);
+	float sinphi=sin(starting_phase);
+	float cosphi_last, sinphi_last;
+	float32x4_t cssc, iqiq, cscsdelta;
+	cscsdelta = vsetq_lane_f32(d.cosdelta, cscsdelta, 0);
+	cscsdelta = vsetq_lane_f32(d.sindelta, cscsdelta, 1);
+	cscsdelta = vsetq_lane_f32(d.cosdelta, cscsdelta, 2);
+	cscsdelta = vsetq_lane_f32(d.sindelta, cscsdelta, 3);
+
+	for(int i=0;i<input_size;i++) //@shift_addition_cc: work
+	{
+		cssc = vsetq_lane_f32(cosphi, cssc, 0);
+		cssc = vsetq_lane_f32(cosphi, cssc, 3);
+		cssc = vsetq_lane_f32(sinphi, cssc, 1);
+		cssc = vsetq_lane_f32(sinphi, cssc, 2);
+
+		// load I/Q sample
+		float32x2_t sample;
+		sample = vld1_f32((float *)(input+i));
+		iqiq = vcombine_f32(sample,sample);
+
+		iqiq = vmulq_f32(iqiq, cssc);
+		// to be optimized...
+		iof(output,i)=vgetq_lane_f32(iqiq,0)-vgetq_lane_f32(iqiq,1);
+		qof(output,i)=vgetq_lane_f32(iqiq,2)+vgetq_lane_f32(iqiq,3);
+		
+		//iof(output,i)=cosphi*iof(input,i)-sinphi*qof(input,i);
+		//qof(output,i)=sinphi*iof(input,i)+cosphi*qof(input,i);
+
+		//using the trigonometric addition formulas
+		//cos(phi+delta)=cos(phi)cos(delta)-sin(phi)*sin(delta)
+		cssc = vmulq_f32(cssc, cscsdelta);
+
+		cosphi = vgetq_lane_f32(cssc,0)-vgetq_lane_f32(cssc,1);
+		sinphi = vgetq_lane_f32(cssc,2)+vgetq_lane_f32(cssc,3);	
+		//cosphi_last=cosphi;
+		//sinphi_last=sinphi;
+		//cosphi=cosphi_last*d.cosdelta-sinphi_last*d.sindelta;
+		//sinphi=sinphi_last*d.cosdelta+cosphi_last*d.sindelta;
+	}
+	starting_phase+=d.rate*PI*input_size;
+	while(starting_phase>PI) starting_phase-=2*PI; //@shift_addition_cc: normalize starting_phase
+	while(starting_phase<-PI) starting_phase+=2*PI; 
+	return starting_phase;
+}
 float shift_addition_cc(complexf *input, complexf* output, int input_size, shift_addition_data_t d, float starting_phase)
 {
 	//The original idea was taken from wdsp:
@@ -95,6 +147,43 @@ void shift_addition_cc_test(shift_addition_data_t d)
 	}
 	printf("]; error_vector_db=20*log10(error_vector); plot(error_vector_db);\n");
 }
+
+shift_addition_data_t decimating_shift_addition_init(float rate, int decimation)
+{
+	return shift_addition_init(rate*decimation);
+}
+
+decimating_shift_addition_status_t decimating_shift_addition_cc(complexf *input, complexf* output, int input_size, shift_addition_data_t d, int decimation, decimating_shift_addition_status_t s)
+{
+	//The original idea was taken from wdsp:
+	//http://svn.tapr.org/repos_sdr_hpsdr/trunk/W5WC/PowerSDR_HPSDR_mRX_PS/Source/wdsp/shift.c
+	//However, this method introduces noise (from floating point rounding errors), which increases until the end of the buffer.
+	//fprintf(stderr, "cosd=%g sind=%g\n", d.cosdelta, d.sindelta);
+	float cosphi=cos(s.starting_phase);
+	float sinphi=sin(s.starting_phase);
+	float cosphi_last, sinphi_last;
+	int i;
+	int k=0;
+	for(i=s.decimation_remain;i<input_size;i+=decimation) //@shift_addition_cc: work
+	{
+		iof(output,k)=cosphi*iof(input,i)-sinphi*qof(input,i);
+		qof(output,k)=sinphi*iof(input,i)+cosphi*qof(input,i);
+		k++;
+		//using the trigonometric addition formulas
+		//cos(phi+delta)=cos(phi)cos(delta)-sin(phi)*sin(delta)
+		cosphi_last=cosphi;
+		sinphi_last=sinphi;
+		cosphi=cosphi_last*d.cosdelta-sinphi_last*d.sindelta;
+		sinphi=sinphi_last*d.cosdelta+cosphi_last*d.sindelta;
+	}
+	s.decimation_remain=i-input_size;
+	s.starting_phase+=d.rate*PI*k;
+	s.output_size=k;
+	while(s.starting_phase>PI) s.starting_phase-=2*PI; //@shift_addition_cc: normalize starting_phase
+	while(s.starting_phase<-PI) s.starting_phase+=2*PI; 
+	return s;
+}
+
 
 float agc_ff(float* input, float* output, int input_size, float reference, float attack_rate, float decay_rate, float max_gain, short hang_time, short attack_wait_time, float gain_filter_alpha, float last_gain)
 {
