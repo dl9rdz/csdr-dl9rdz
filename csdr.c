@@ -346,7 +346,7 @@ int main(int argc, char *argv[])
 		if(fd=init_fifo(argc,argv))
 		{
 			//while(!read_fifo_ctl(fd,"%g\n",&cutoff)) usleep(10000);
-			cutoff = 0.001;
+			cutoff = 0.0006;
 		}
 		else
 		{
