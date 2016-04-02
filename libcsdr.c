@@ -1,5 +1,5 @@
 /*
-This software is part of libcsdr, a set of simple DSP routines for 
+This software is part of libcsdr, a set of simple DSP routines for
 Software Defined Radio.
 
 Copyright (c) 2014, Andras Retzler <randras@sdr.hu>
@@ -40,14 +40,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include "arm_neon.h"
 /*
-           _           _                   __                  _   _                 
-          (_)         | |                 / _|                | | (_)                
- __      ___ _ __   __| | _____      __  | |_ _   _ _ __   ___| |_ _  ___  _ __  ___ 
+           _           _                   __                  _   _
+          (_)         | |                 / _|                | | (_)
+ __      ___ _ __   __| | _____      __  | |_ _   _ _ __   ___| |_ _  ___  _ __  ___
  \ \ /\ / / | '_ \ / _` |/ _ \ \ /\ / /  |  _| | | | '_ \ / __| __| |/ _ \| '_ \/ __|
   \ V  V /| | | | | (_| | (_) \ V  V /   | | | |_| | | | | (__| |_| | (_) | | | \__ \
    \_/\_/ |_|_| |_|\__,_|\___/ \_/\_/    |_|  \__,_|_| |_|\___|\__|_|\___/|_| |_|___/
-                                                                                     
-                                                                                                                                                         
+
+
 */
 
 #define MFIRDES_GWS(NAME) \
@@ -95,7 +95,7 @@ float firdes_wkernel_boxcar(float rate)
 }
 
 float (*firdes_get_window_kernel(window_t window))(float)
-{	
+{
 	if(window==WINDOW_HAMMING) return firdes_wkernel_hamming;
 	else if(window==WINDOW_BLACKMAN) return firdes_wkernel_blackman;
 	else if(window==WINDOW_BOXCAR) return firdes_wkernel_boxcar;
@@ -103,14 +103,14 @@ float (*firdes_get_window_kernel(window_t window))(float)
 }
 
 /*
-  ______ _____ _____      __ _ _ _                   _           _             
- |  ____|_   _|  __ \    / _(_) | |                 | |         (_)            
- | |__    | | | |__) |  | |_ _| | |_ ___ _ __     __| | ___  ___ _  __ _ _ __  
- |  __|   | | |  _  /   |  _| | | __/ _ \ '__|   / _` |/ _ \/ __| |/ _` | '_ \ 
+  ______ _____ _____      __ _ _ _                   _           _
+ |  ____|_   _|  __ \    / _(_) | |                 | |         (_)
+ | |__    | | | |__) |  | |_ _| | |_ ___ _ __     __| | ___  ___ _  __ _ _ __
+ |  __|   | | |  _  /   |  _| | | __/ _ \ '__|   / _` |/ _ \/ __| |/ _` | '_ \
  | |     _| |_| | \ \   | | | | | ||  __/ |     | (_| |  __/\__ \ | (_| | | | |
  |_|    |_____|_|  \_\  |_| |_|_|\__\___|_|      \__,_|\___||___/_|\__, |_| |_|
-                                                                    __/ |      
-                                                                   |___/       
+                                                                    __/ |
+                                                                   |___/
 */
 
 void firdes_lowpass_f(float *output, int length, float cutoff_rate, window_t window)
@@ -127,7 +127,7 @@ void firdes_lowpass_f(float *output, int length, float cutoff_rate, window_t win
 		output[middle-i]=output[middle+i]=(sin(2*PI*cutoff_rate*i)/i)*window_function((float)i/middle);
 		//printf("%g %d %d %d %d | %g\n",output[middle-i],i,middle,middle+i,middle-i,sin(2*PI*cutoff_rate*i));
 	}
-	
+
 	//Normalize filter kernel
 	float sum=0;
 	for(int i=0;i<length;i++) //@firdes_lowpass_f: normalize pass 1
@@ -147,18 +147,18 @@ void firdes_bandpass_c(complexf *output, int length, float lowcut, float highcut
 	//	2. we shift the filter taps spectrally by multiplying with e^(j*w), so we get complex taps
 	//(tnx HA5FT)
 	float* realtaps = (float*)malloc(sizeof(float)*length);
-	
+
 	firdes_lowpass_f(realtaps, length, (highcut-lowcut)/2, window);
 	float filter_center=(highcut+lowcut)/2;
-	
+
 	float phase=0, sinval, cosval;
 	for(int i=0; i<length; i++) //@@firdes_bandpass_c
 	{
 		cosval=cos(phase);
-		sinval=sin(phase);		
+		sinval=sin(phase);
 		phase+=2*PI*filter_center;
 		while(phase>2*PI) phase-=2*PI; //@@firdes_bandpass_c
-		while(phase<0) phase+=2*PI; 
+		while(phase<0) phase+=2*PI;
 		iof(output,i)=cosval*realtaps[i];
 		qof(output,i)=sinval*realtaps[i];
 		//output[i] := realtaps[i] * e^j*w
@@ -173,14 +173,14 @@ int firdes_filter_len(float transition_bw)
 }
 
 /*
-  _____   _____ _____      __                  _   _                 
- |  __ \ / ____|  __ \    / _|                | | (_)                
- | |  | | (___ | |__) |  | |_ _   _ _ __   ___| |_ _  ___  _ __  ___ 
+  _____   _____ _____      __                  _   _
+ |  __ \ / ____|  __ \    / _|                | | (_)
+ | |  | | (___ | |__) |  | |_ _   _ _ __   ___| |_ _  ___  _ __  ___
  | |  | |\___ \|  ___/   |  _| | | | '_ \ / __| __| |/ _ \| '_ \/ __|
  | |__| |____) | |       | | | |_| | | | | (__| |_| | (_) | | | \__ \
  |_____/|_____/|_|       |_|  \__,_|_| |_|\___|\__|_|\___/|_| |_|___/
 
-*/                                                   
+*/
 
 float shift_math_cc(complexf *input, complexf* output, int input_size, float rate, float starting_phase)
 {
@@ -239,7 +239,7 @@ float shift_table_cc(complexf* input, complexf* output, int input_size, float ra
 		//float vphase=fmodf(phase,PI/2); //between 0 and 90deg
 		int quadrant=phase/(PI/2); //between 0 and 3
 		float vphase=phase-quadrant*(PI/2);
-		sin_index=(vphase/(PI/2))*table_data.table_size; 
+		sin_index=(vphase/(PI/2))*table_data.table_size;
 		cos_index=table_data.table_size-1-sin_index;
 		if(quadrant&1) //in quadrant 1 and 3
 		{
@@ -262,6 +262,71 @@ float shift_table_cc(complexf* input, complexf* output, int input_size, float ra
 	}
 	return phase;
 }
+
+#ifdef NEON_OPTS
+#pragma message "We have a faster fir_decimate_cc now."
+
+//max help: http://community.arm.com/groups/android-community/blog/2015/03/27/arm-neon-programming-quick-reference
+
+int fir_decimate_cc(complexf *input, complexf *output, int input_size, int decimation, float *taps, int taps_length)
+{
+	//Theory: http://www.dspguru.com/dsp/faqs/multirate/decimation
+	//It uses real taps. It returns the number of output samples actually written.
+	//It needs overlapping input based on its returned value:
+	//number of processed input samples = returned value * decimation factor
+	//The output buffer should be at least input_length / 3.
+	// i: input index | ti: tap index | oi: output index
+	int oi=0;
+	for(int i=0; i<input_size; i+=decimation) //@fir_decimate_cc: outer loop
+	{
+		if(i+taps_length>input_size) break;
+		register float acci=0;
+		register float accq=0;
+
+		register int ti=0;
+		register float* pinput=(float*)&(input[i+ti]);
+		register float* ptaps=taps;
+		register float* ptaps_end=taps+taps_length;
+		float quad_acciq [8];
+
+
+/*
+q0, q1:	input signal I sample and Q sample
+q2:		taps
+q4, q5: accumulator for I branch and Q branch (will be the output)
+*/
+
+		asm volatile(
+			"		vmov.f32 q4, #0.0\n\t" //another way to null the accumulators
+			"		vmov.f32 q5, #0.0\n\t"
+			"for_fdccasm: vld2.32	{q0-q1}, [%[pinput]]!\n\t" //load q0 and q1 directly from the memory address stored in pinput, with interleaving (so that we get the I samples in q0 and the Q samples in q1), also increment the memory address in pinput (hence the "!" mark) //http://community.arm.com/groups/processors/blog/2010/03/17/coding-for-neon--part-1-load-and-stores
+			"		vld1.32	{q2}, [%[ptaps]]!\n\t"
+			"		vmla.f32 q4, q0, q2\n\t" //quad_acc_i += quad_input_i * quad_taps_1 //http://stackoverflow.com/questions/3240440/how-to-use-the-multiply-and-accumulate-intrinsics-in-arm-cortex-a8 //http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0489e/CIHEJBIE.html
+			"		vmla.f32 q5, q1, q2\n\t" //quad_acc_q += quad_input_q * quad_taps_1
+			"		cmp %[ptaps], %[ptaps_end]\n\t" //if(ptaps == ptaps_end)
+			"		bcc for_fdccasm\n\t"			//	then goto for_fdcasm
+			"		vst1.32 {q4}, [%[quad_acci]]\n\t" //if the loop is finished, store the two accumulators in memory
+			"		vst1.32 {q5}, [%[quad_accq]]\n\t"
+		:
+			[pinput]"+r"(pinput), [ptaps]"+r"(ptaps) //output operand list
+		:
+			[ptaps_end]"r"(ptaps_end), [quad_acci]"r"(quad_acciq), [quad_accq]"r"(quad_acciq+4) //input operand list
+		:
+			"memory", "q0", "q1", "q2", "q4", "q5", "cc" //clobber list
+		);
+		//original for loops for reference:
+		//for(int ti=0; ti<taps_length; ti++) acci += (iof(input,i+ti)) * taps[ti]; //@fir_decimate_cc: i loop
+		//for(int ti=0; ti<taps_length; ti++) accq += (qof(input,i+ti)) * taps[ti]; //@fir_decimate_cc: q loop
+
+		//for(int n=0;n<8;n++) fprintf(stderr, "\n>> [%d] %g \n", n, quad_acciq[n]);
+		iof(output,oi)=quad_acciq[0]+quad_acciq[1]+quad_acciq[2]+quad_acciq[3]; //we're still not ready, as we have to add up the contents of a quad accumulator register to get a single accumulated value
+		qof(output,oi)=quad_acciq[4]+quad_acciq[5]+quad_acciq[6]+quad_acciq[7];
+		oi++;
+	}
+	return oi;
+}
+
+#else
 
 int fir_decimate_cc(complexf *input, complexf *output, int input_size, int decimation, float *taps, int taps_length)
 {
@@ -298,6 +363,7 @@ int fir_decimate_cc2(complexf *input, complexf *output, int input_size, int deci
 	for(int i=0; i<input_size; i+=decimation) //@fir_decimate_cc: outer loop
 	{
 		if(i+taps_length>input_size) break;
+
 		float32x4_t si, ci, o;
 		o = vdupq_n_f32(0);
 		for(int ti=0; ti<2*taps_length; ti+=4) {   //@fir_decimate_cc2: i+q loop
@@ -316,7 +382,7 @@ int fir_decimate_cc2(complexf *input, complexf *output, int input_size, int deci
 
 rational_resampler_ff_t rational_resampler_ff(float *input, float *output, int input_size, int interpolation, int decimation, float *taps, int taps_length, int last_taps_delay)
 {
-	
+
 	//Theory: http://www.dspguru.com/dsp/faqs/multirate/resampling
 	//oi: output index, i: tap index
 	int output_size=input_size*interpolation/decimation;
@@ -347,7 +413,7 @@ rational_resampler_ff_t rational_resampler_ff(float *input, float *output, int i
 
 /*
 
-The greatest challenge in resampling is figuring out which tap should be applied to which sample. 
+The greatest challenge in resampling is figuring out which tap should be applied to which sample.
 
 Typical test patterns for rational_resampler_ff:
 
@@ -392,13 +458,13 @@ float inline fir_one_pass_ff(float* input, float* taps, int taps_length)
 fractional_decimator_ff_t fractional_decimator_ff(float* input, float* output, int input_size, float rate, float *taps, int taps_length, fractional_decimator_ff_t d)
 {
 	if(rate<=1.0) return d; //sanity check, can't decimate <=1.0
-	//This routine can handle floating point decimation rates. 
-	//It linearly interpolates between two samples that are taken into consideration from the filtered input. 
+	//This routine can handle floating point decimation rates.
+	//It linearly interpolates between two samples that are taken into consideration from the filtered input.
 	int oi=0;
 	int index_high;
 	float where=d.remain;
 	float result_high, result_low;
-	if(where==0.0) //in the first iteration index_high may be zero (so using the item index_high-1 would lead to invalid memory access). 
+	if(where==0.0) //in the first iteration index_high may be zero (so using the item index_high-1 would lead to invalid memory access).
 	{
 		output[oi++]=fir_one_pass_ff(input,taps,taps_length);
 		where+=rate;
@@ -409,7 +475,7 @@ fractional_decimator_ff_t fractional_decimator_ff(float* input, float* output, i
 	for(;(index_high=ceilf(where))+taps_length<input_size;where+=rate) //@fractional_decimator_ff
 	{
 		if(previous_index_high==index_high-1) result_low=result_high; //if we step less than 2.0 then we do already have the result for the FIR filter for that index
-		else result_low=fir_one_pass_ff(input+index_high-1,taps,taps_length); 
+		else result_low=fir_one_pass_ff(input+index_high-1,taps,taps_length);
 		result_high=fir_one_pass_ff(input+index_high,taps,taps_length);
 		float register rate_between_samples=where-index_high+1;
 		output[oi++]=result_low*(1-rate_between_samples)+result_high*rate_between_samples;
@@ -433,16 +499,16 @@ void apply_fir_fft_cc(FFT_PLAN_T* plan, FFT_PLAN_T* plan_inverse, complexf* taps
 	//multiply the filter and the input
 	complexf* in = plan->output;
 	complexf* out = plan_inverse->input;
-	
+
 	for(int i=0;i<plan->size;i++) //@apply_fir_fft_cc: multiplication
 	{
 		iof(out,i)=iof(in,i)*iof(taps_fft,i)-qof(in,i)*qof(taps_fft,i);
 		qof(out,i)=iof(in,i)*qof(taps_fft,i)+qof(in,i)*iof(taps_fft,i);
 	}
-	
+
 	//calculate inverse FFT on multiplied buffer
 	fft_execute(plan_inverse);
-	
+
 	//add the overlap of the previous segment
 	complexf* result = plan_inverse->output;
 
@@ -451,35 +517,35 @@ void apply_fir_fft_cc(FFT_PLAN_T* plan, FFT_PLAN_T* plan_inverse, complexf* taps
 		iof(result,i)/=plan->size;
 		qof(result,i)/=plan->size;
 	}
-	
+
 	for(int i=0;i<overlap_size;i++) //@apply_fir_fft_cc: add overlap
 	{
 		iof(result,i)=iof(result,i)+iof(last_overlap,i);
 		qof(result,i)=qof(result,i)+qof(last_overlap,i);
 	}
-	
+
 }
 
 /*
-           __  __       _                          _       _       _                 
-     /\   |  \/  |     | |                        | |     | |     | |                
-    /  \  | \  / |   __| | ___ _ __ ___   ___   __| |_   _| | __ _| |_ ___  _ __ ___ 
+           __  __       _                          _       _       _
+     /\   |  \/  |     | |                        | |     | |     | |
+    /  \  | \  / |   __| | ___ _ __ ___   ___   __| |_   _| | __ _| |_ ___  _ __ ___
    / /\ \ | |\/| |  / _` |/ _ \ '_ ` _ \ / _ \ / _` | | | | |/ _` | __/ _ \| '__/ __|
   / ____ \| |  | | | (_| |  __/ | | | | | (_) | (_| | |_| | | (_| | || (_) | |  \__ \
  /_/    \_\_|  |_|  \__,_|\___|_| |_| |_|\___/ \__,_|\__,_|_|\__,_|\__\___/|_|  |___/
-                                                                                                                                                                        
+
 */
 
 void amdemod_cf(complexf* input, float *output, int input_size)
 {
 	//@amdemod: i*i+q*q
 	for (int i=0; i<input_size; i++)
-	{ 
+	{
 		output[i]=iof(input,i)*iof(input,i)+qof(input,i)*qof(input,i);
 	}
 	//@amdemod: sqrt
 	for (int i=0; i<input_size; i++)
-	{ 
+	{
 		output[i]=sqrt(output[i]);
 	}
 }
@@ -490,7 +556,7 @@ void amdemod_estimator_cf(complexf* input, float *output, int input_size, float 
 	//http://www.dspguru.com/dsp/tricks/magnitude-estimator
 
 	//default: optimize for min RMS error
-	if(alpha==0) 
+	if(alpha==0)
 	{
 		alpha=0.947543636291;
 		beta=0.392485425092;
@@ -498,7 +564,7 @@ void amdemod_estimator_cf(complexf* input, float *output, int input_size, float 
 
 	//@amdemod_estimator
 	for (int i=0; i<input_size; i++)
-	{ 
+	{
 		float abs_i=iof(input,i);
 		if(abs_i<0) abs_i=-abs_i;
 		float abs_q=qof(input,i);
@@ -541,8 +607,8 @@ float fastdcblock_ff(float* input, float* output, int input_size, float last_dc_
 		avg+=input[i];
 	}
 	avg/=input_size;
-	
-	float avgdiff=avg-last_dc_level; 
+
+	float avgdiff=avg-last_dc_level;
 	//DC removal level will change lineraly from last_dc_level to avg.
 	for(int i=0;i<input_size;i++) //@fastdcblock_ff: remove DC component
 	{
@@ -553,7 +619,7 @@ float fastdcblock_ff(float* input, float* output, int input_size, float last_dc_
 }
 
 //#define FASTAGC_MAX_GAIN (65e3)
-#define FASTAGC_MAX_GAIN 10
+#define FASTAGC_MAX_GAIN 50
 
 void fastagc_ff(fastagc_ff_t* input, float* output)
 {
@@ -561,7 +627,7 @@ void fastagc_ff(fastagc_ff_t* input, float* output)
 	//You have to supply three blocks of samples before the first block comes out.
 	//AGC reaction speed equals input_size*samp_rate*2
 
-	//The algorithm calculates target gain at the end of the first block out of the peak value of all the three blocks. 
+	//The algorithm calculates target gain at the end of the first block out of the peak value of all the three blocks.
 	//This way the gain change can easily react if there is any peak in the third block.
 	//Pros: can be easily speeded up with loop vectorization, easy to implement
 	//Cons: needs 3 buffers, dos not behave similarly to real AGC circuits
@@ -578,10 +644,11 @@ void fastagc_ff(fastagc_ff_t* input, float* output)
 	float target_peak=peak_input;
 	if(target_peak<input->peak_2) target_peak=input->peak_2;
 	if(target_peak<input->peak_1) target_peak=input->peak_1;
-	
+
 	//we change the gain linearly on the apply_block from the last_gain to target_gain.
 	float target_gain=input->reference/target_peak;
 	if(target_gain>FASTAGC_MAX_GAIN) target_gain=FASTAGC_MAX_GAIN;
+	//fprintf(stderr, "target_gain: %g\n",target_gain);
 
 	for(int i=0;i<input->input_size;i++) //@fastagc_ff: apply gain
 	{
@@ -601,11 +668,10 @@ void fastagc_ff(fastagc_ff_t* input, float* output)
 	//fprintf(stderr,"target_gain=%g\n", target_gain);
 }
 
-
 /*
-  ______ __  __        _                          _       _       _                 
- |  ____|  \/  |      | |                        | |     | |     | |                
- | |__  | \  / |    __| | ___ _ __ ___   ___   __| |_   _| | __ _| |_ ___  _ __ ___ 
+  ______ __  __        _                          _       _       _
+ |  ____|  \/  |      | |                        | |     | |     | |
+ | |__  | \  / |    __| | ___ _ __ ___   ___   __| |_   _| | __ _| |_ ___  _ __ ___
  |  __| | |\/| |   / _` |/ _ \ '_ ` _ \ / _ \ / _` | | | | |/ _` | __/ _ \| '__/ __|
  | |    | |  | |  | (_| |  __/ | | | | | (_) | (_| | |_| | | (_| | || (_) | |  \__ \
  |_|    |_|  |_|   \__,_|\___|_| |_| |_|\___/ \__,_|\__,_|_|\__,_|\__\___/|_|  |___/
@@ -656,33 +722,33 @@ complexf fmdemod_quadri_cf(complexf* input, float* output, int input_size, float
 
 	temp_dq[0]=qof(input,0)-last_sample.q;
 	for (int i=1; i<input_size; i++) //@fmdemod_quadri_cf: dq
-	{		
+	{
 		temp_dq[i]=qof(input,i)-qof(input,i-1);
 	}
 
 	temp_di[0]=iof(input,0)-last_sample.i;
 	for (int i=1; i<input_size; i++) //@fmdemod_quadri_cf: di
-	{		
+	{
 		temp_di[i]=iof(input,i)-iof(input,i-1);
 	}
 
 	for (int i=0; i<input_size; i++) //@fmdemod_quadri_cf: output numerator
-	{		
+	{
 		output[i]=(iof(input,i)*temp_dq[i]-qof(input,i)*temp_di[i]);
 	}
 	for (int i=0; i<input_size; i++) //@fmdemod_quadri_cf: output denomiator
-	{		
+	{
 		temp[i]=iof(input,i)*iof(input,i)+qof(input,i)*qof(input,i);
-	}	
-	for (int i=0; i<input_size; i++) //@fmdemod_quadri_cf: output division
-	{		
-		output[i]=fmdemod_quadri_K*output[i]/temp[i];
 	}
-	
+	for (int i=0; i<input_size; i++) //@fmdemod_quadri_cf: output division
+	{
+		output[i]=(temp[i])?fmdemod_quadri_K*output[i]/temp[i]:0;
+	}
+
 	return input[input_size-1];
 }
 
-inline int is_nan(float f) 
+inline int is_nan(float f)
 {
 	//http://stackoverflow.com/questions/570669/checking-if-a-double-or-float-is-nan-in-c
     unsigned u = *(unsigned*)&f;
@@ -692,7 +758,7 @@ inline int is_nan(float f)
 
 float deemphasis_wfm_ff (float* input, float* output, int input_size, float tau, int sample_rate, float last_output)
 {
-	/* 
+	/*
 		typical time constant (tau) values:
 		WFM transmission in USA: 75 us -> tau = 75e-6
 		WFM transmission in EU:  50 us -> tau = 50e-6
@@ -702,7 +768,7 @@ float deemphasis_wfm_ff (float* input, float* output, int input_size, float tau,
 	float dt = 1.0/sample_rate;
 	float alpha = dt/(tau+dt);
 	if(is_nan(last_output)) last_output=0.0; //if last_output is NaN
-	output[0]=alpha*input[0]+(1-alpha)*last_output; 
+	output[0]=alpha*input[0]+(1-alpha)*last_output;
 	for (int i=1;i<input_size;i++) //@deemphasis_wfm_ff
        output[i]=alpha*input[i]+(1-alpha)*output[i-1]; //this is the simplest IIR LPF
    	return output[input_size-1];
@@ -715,7 +781,7 @@ int deemphasis_nfm_ff (float* input, float* output, int input_size, int sample_r
 	/*
 		Warning! This only works on predefined samplerates, as it uses fixed FIR coefficients defined in predefined.h
 		However, there are the octave commands to generate the taps for your custom (fixed) sample rate.
-		What it does: 
+		What it does:
 			- reject below 400 Hz
 			- passband between 400 HZ - 4 kHz, but with 20 dB/decade rolloff (for deemphasis)
 			- reject everything above 4 kHz
@@ -742,10 +808,10 @@ int deemphasis_nfm_ff (float* input, float* output, int input_size, int sample_r
 void limit_ff(float* input, float* output, int input_size, float max_amplitude)
 {
 	for (int i=0; i<input_size; i++) //@limit_ff
-	{		
+	{
 		output[i]=(max_amplitude<input[i])?max_amplitude:input[i];
 		output[i]=(-max_amplitude>output[i])?-max_amplitude:output[i];
-	}	
+	}
 }
 
 void gain_ff(float* input, float* output, int input_size, float gain)
@@ -753,21 +819,86 @@ void gain_ff(float* input, float* output, int input_size, float gain)
 	for(int i=0;i<input_size;i++) output[i]=gain*input[i]; //@gain_ff
 }
 
+float get_power_f(float* input, int input_size, int decimation)
+{
+  float acc = 0;
+  for(int i=0;i<input_size;i+=decimation)
+  {
+    acc += (input[i]*input[i])/input_size;
+  }
+  return acc;
+}
+
+float get_power_c(complexf* input, int input_size, int decimation)
+{
+  float acc = 0;
+  for(int i=0;i<input_size;i+=decimation)
+  {
+    acc += (iof(input,i)*iof(input,i)+qof(input,i)*qof(input,i))/input_size;
+  }
+  return acc;
+}
 
 /*
-  ______        _     ______               _             _______                   __                     
- |  ____|      | |   |  ____|             (_)           |__   __|                 / _|                    
- | |__ __ _ ___| |_  | |__ ___  _   _ _ __ _  ___ _ __     | |_ __ __ _ _ __  ___| |_ ___  _ __ _ __ ___  
- |  __/ _` / __| __| |  __/ _ \| | | | '__| |/ _ \ '__|    | | '__/ _` | '_ \/ __|  _/ _ \| '__| '_ ` _ \ 
+  __  __           _       _       _
+ |  \/  |         | |     | |     | |
+ | \  / | ___   __| |_   _| | __ _| |_ ___  _ __ ___
+ | |\/| |/ _ \ / _` | | | | |/ _` | __/ _ \| '__/ __|
+ | |  | | (_) | (_| | |_| | | (_| | || (_) | |  \__ \
+ |_|  |_|\___/ \__,_|\__,_|_|\__,_|\__\___/|_|  |___/
+
+*/
+
+void add_dcoffset_cc(complexf* input, complexf* output, int input_size)
+{
+	for(int i=0;i<input_size;i++) iof(output,i)=0.5+iof(input,i)/2;
+	for(int i=0;i<input_size;i++) qof(output,i)=qof(input,i)/2;
+}
+
+float fmmod_fc(float* input, complexf* output, int input_size, float last_phase)
+{
+	float phase=last_phase;
+	for(int i=0;i<input_size;i++)
+	{
+		phase+=input[i]*PI;
+		while(phase>PI) phase-=2*PI;
+		while(phase<=-PI) phase+=2*PI;
+		iof(output,i)=cos(phase);
+		qof(output,i)=sin(phase);
+	}
+	return phase;
+}
+
+void fixed_amplitude_cc(complexf* input, complexf* output, int input_size, float new_amplitude)
+{
+	for(int i=0;i<input_size;i++)
+	{
+		//float phase=atan2(iof(input,i),qof(input,i));
+		//iof(output,i)=cos(phase)*amp;
+		//qof(output,i)=sin(phase)*amp;
+
+		//A faster solution:
+		float amplitude_now = sqrt(iof(input,i)*iof(input,i)+qof(input,i)*qof(input,i));
+		float gain = (amplitude_now > 0) ? new_amplitude / amplitude_now : 0;
+		iof(output,i)=iof(input,i)*gain;
+		qof(output,i)=qof(input,i)*gain;
+	}
+}
+
+/*
+  ______        _     ______               _             _______                   __
+ |  ____|      | |   |  ____|             (_)           |__   __|                 / _|
+ | |__ __ _ ___| |_  | |__ ___  _   _ _ __ _  ___ _ __     | |_ __ __ _ _ __  ___| |_ ___  _ __ _ __ ___
+ |  __/ _` / __| __| |  __/ _ \| | | | '__| |/ _ \ '__|    | | '__/ _` | '_ \/ __|  _/ _ \| '__| '_ ` _ \
  | | | (_| \__ \ |_  | | | (_) | |_| | |  | |  __/ |       | | | | (_| | | | \__ \ || (_) | |  | | | | | |
- |_|  \__,_|___/\__| |_|  \___/ \__,_|_|  |_|\___|_|       |_|_|  \__,_|_| |_|___/_| \___/|_|  |_| |_| |_|                                                                                                                                                                                                                   
+ |_|  \__,_|___/\__| |_|  \___/ \__,_|_|  |_|\___|_|       |_|_|  \__,_|_| |_|___/_| \___/|_|  |_| |_| |_|
 
 */
 
 int log2n(int x)
 {
 	int result=-1;
-	for(int i=0;i<31;i++) 
+	for(int i=0;i<31;i++)
 	{
 		if((x>>i)&1) //@@log2n
 		{
@@ -782,7 +913,7 @@ int next_pow2(int x)
 {
 	int pow2;
 	//portability? (31 is the problem)
-	for(int i=0;i<31;i++) 
+	for(int i=0;i<31;i++)
 	{
 		if(x<(pow2=1<<i)) return pow2; //@@next_pow2
 	}
@@ -813,21 +944,21 @@ void apply_window_f(float* input, float* output, int size, window_t window)
 void logpower_cf(complexf* input, float* output, int size, float add_db)
 {
 	for(int i=0;i<size;i++) output[i]=iof(input,i)*iof(input,i) + qof(input,i)*qof(input,i); //@logpower_cf: pass 1
-	
+
 	for(int i=0;i<size;i++) output[i]=log10(output[i]); //@logpower_cf: pass 2
 
 	for(int i=0;i<size;i++) output[i]=10*output[i]+add_db; //@logpower_cf: pass 3
 }
 
 /*
-  _____        _                                            _             
- |  __ \      | |                                          (_)            
- | |  | | __ _| |_ __ _    ___ ___  _ ____   _____ _ __ ___ _  ___  _ __  
- | |  | |/ _` | __/ _` |  / __/ _ \| '_ \ \ / / _ \ '__/ __| |/ _ \| '_ \ 
+  _____        _                                            _
+ |  __ \      | |                                          (_)
+ | |  | | __ _| |_ __ _    ___ ___  _ ____   _____ _ __ ___ _  ___  _ __
+ | |  | |/ _` | __/ _` |  / __/ _ \| '_ \ \ / / _ \ '__/ __| |/ _ \| '_ \
  | |__| | (_| | || (_| | | (_| (_) | | | \ V /  __/ |  \__ \ | (_) | | | |
  |_____/ \__,_|\__\__,_|  \___\___/|_| |_|\_/ \___|_|  |___/_|\___/|_| |_|
-                                                                          
-*/                                                                          
+
+*/
 
 void convert_u8_f(unsigned char* input, float* output, int input_size)
 {
@@ -873,27 +1004,40 @@ void convert_u8_f(unsigned char* input, float* output, int input_size)
 	}
 }
 
-void convert_i16_f(short* input, float* output, int input_size)
+void convert_s8_f(signed char* input, float* output, int input_size)
 {
-	for(int i=0;i<input_size;i++) output[i]=(float)input[i]/SHRT_MAX; //@convert_i16_f
+	for(int i=0;i<input_size;i++) output[i]=((float)input[i])/SCHAR_MAX; //@convert_s8_f
+}
+
+void convert_s16_f(short* input, float* output, int input_size)
+{
+	for(int i=0;i<input_size;i++) output[i]=(float)input[i]/SHRT_MAX; //@convert_s16_f
 }
 
 void convert_f_u8(float* input, unsigned char* output, int input_size)
 {
 	for(int i=0;i<input_size;i++) output[i]=input[i]*UCHAR_MAX*0.5+128; //@convert_f_u8
-	//128 above is the correct value to add. In any other case a DC component 
+	//128 above is the correct value to add. In any other case a DC component
 	//of at least -60 dB is shown on the FFT plot after convert_f_u8 -> convert_u8_f
 }
 
-void convert_f_i16(float* input, short* output, int input_size)
+void convert_f_s8(float* input, signed char* output, int input_size)
 {
-	/*for(int i=0;i<input_size;i++) 
+	for(int i=0;i<input_size;i++) output[i]=input[i]*SCHAR_MAX; //@convert_f_s8
+}
+
+void convert_f_s16(float* input, short* output, int input_size)
+{
+	/*for(int i=0;i<input_size;i++)
 	{
 		if(input[i]>1.0) input[i]=1.0;
 		if(input[i]<-1.0) input[i]=-1.0;
 	}*/
-	for(int i=0;i<input_size;i++) output[i]=input[i]*SHRT_MAX; //@convert_f_i16
+	for(int i=0;i<input_size;i++) output[i]=input[i]*SHRT_MAX; //@convert_f_s16
 }
+
+void convert_i16_f(short* input, float* output, int input_size) { convert_s16_f(input, output, input_size); }
+void convert_f_i16(float* input, short* output, int input_size) { convert_f_s16(input, output, input_size); }
 
 int trivial_vectorize()
 {
