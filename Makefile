@@ -38,7 +38,7 @@ PARAMS_SIMD = $(if $(call cpufeature,sse,dummy-text),$(PARAMS_SSE),$(PARAMS_ARM)
 PARAMS_LOOPVECT = -O3 -ffast-math -fdump-tree-vect-details -dumpbase dumpvect
 PARAMS_LIBS = -g -lm -lrt -lfftw3f -DUSE_FFTW -DLIBCSDR_GPL -DUSE_IMA_ADPCM
 PARAMS_SO = -fpic  
-PARAMS_MISC = -Wno-unused-result
+PARAMS_MISC = -Wno-unused-result -I.
 #DEBUG_ON = 0 #debug is always on by now (anyway it could be compiled with `make DEBUG_ON=1`)
 #PARAMS_DEBUG = $(if $(DEBUG_ON),-g,)
 FFTW_PACKAGE = fftw-3.3.3

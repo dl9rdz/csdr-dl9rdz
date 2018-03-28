@@ -731,6 +731,7 @@ int main(int argc, char *argv[])
 	{
 		float cutoff;
 		int fd;
+        	if(!sendbufsize(initialize_buffers())) return -2;
 		if(fd=init_fifo(argc,argv))
 		{
 			//while(!read_fifo_ctl(fd,"%g\n",&cutoff)) usleep(10000);
@@ -746,72 +747,10 @@ int main(int argc, char *argv[])
 		{
 			FEOF_CHECK;
 			if(!FREAD_C) break;
-			float pow = hfsquelch((complexf*)input_buffer, (complexf*)output_buffer, BUFSIZE, cutoff);
+			float pow = hfsquelch((complexf*)input_buffer, (complexf*)output_buffer, the_bufsize, cutoff);
 			//fprintf(stderr, "%g - %g\n", cutoff, pow);
 			FWRITE_C;
 			if(read_fifo_ctl(fd,"%g\n",&cutoff)) /* ok */;
-		}
-		return 0;
-	}
-
-	// Check
-	if(!strcmp(argv[1],"shift_addition_fir_decimate_cc"))
-	{
-		float starting_phase=0;
-		float rate;
-
-		int fd;
-		if(fd=init_fifo(argc,argv))
-		{
-			while(!read_fifo_ctl(fd,"%g\n",&rate)) usleep(10000);
-		}
-		else
-		{
-			if(argc<=2) return badsyntax("need required parameter (rate)"); 
-			sscanf(argv[2],"%g",&rate);
-		}
-		int factor = 5;
-		float transition_bw = 0.15;
-		window_t window = firdes_get_window_from_string("HAMMING");
-
-		int taps_length=firdes_filter_len(transition_bw);
-		fprintf(stderr,"shift_addition_fir_decimate_cc: taps_length = %d\n",taps_length);
-		float *taps=(float*)malloc(taps_length*sizeof(float));
-		firdes_lowpass_f(taps,taps_length,0.5/(float)factor,window);
-
-		float *taps2=(float *)malloc(taps_length*sizeof(float)*2);
-		for(int i=0; i<taps_length; i++) {
-			taps2[2*i]=taps[i];
-			taps2[2*i+1]=taps[i];
-		}
-
-		int output_size=0;
-		int available = 0;  // number of complex elements
-	        static float temp_buffer[BIG_BUFSIZE*4];  // BUFSIZE: number of float elements
-
-		for(;;)
-		{
-			shift_addition_data_t data=shift_addition_init(rate);
-			fprintf(stderr,"shift_addition_fir_decimation_cc: reinitialized to %g\n",rate);
-			for(;;)
-			{
-				FEOF_CHECK;
-				if(available<BIG_BUFSIZE*2) {
-					if(!BIG_FREAD_C) break;
-					starting_phase=shift_addition_cc((complexf*)input_buffer, ((complexf*)temp_buffer)+available, BIG_BUFSIZE, data, starting_phase);
-					available += BIG_BUFSIZE;
-				}
-				//--- do decimation
-			        output_size=fir_decimate_cc2((complexf*)temp_buffer, (complexf*)output_buffer, BIG_BUFSIZE, factor, taps2, taps_length);
-				fwrite(output_buffer, sizeof(complexf), output_size, stdout);
-				fflush(stdout);
-				int input_skip=factor*output_size;
-			        memmove((complexf*)temp_buffer,((complexf*)temp_buffer)+input_skip,(available-input_skip)*sizeof(complexf)); //memmove lets the source and destination overlap
-				available -= input_skip;
-				//---
-				if(read_fifo_ctl(fd,"%g\n",&rate)) break;
-				TRY_YIELD;
-			}
 		}
 		return 0;
 	}

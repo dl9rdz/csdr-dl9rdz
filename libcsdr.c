@@ -548,6 +548,7 @@ int fir_decimate_cc(complexf *input, complexf *output, int input_size, int decim
     }
     return oi;
 }
+#endif
 
 int fir_decimate_cc2(complexf *input, complexf *output, int input_size, int decimation, float *taps, int taps_length)
 {
